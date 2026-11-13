@@ -1,0 +1,12 @@
+{
+  "name": "usage-band",
+  "owner": { "name": "b0jun" },
+  "description": "Claude Code 입력창 위에 사용량과 작업 위치를 항상 보여주는 플러그인",
+  "plugins": [
+    {
+      "name": "usage-band",
+      "source": "./",
+      "description": "입력창 바로 위에 컨텍스트·5시간·주간 사용량 미니 게이지와 현재 워크트리, Zed로 열기 버튼을 항상 표시"
+    }
+  ]
+}
