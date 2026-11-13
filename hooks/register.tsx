@@ -7,7 +7,7 @@ const snapshot = atom({ plugin: 'usage-band', key: 'snapshot' } as const, null)
 const alerted = atom({ plugin: 'usage-band', key: 'alerted' } as const, [])
 const place = atom({ plugin: 'usage-band', key: 'place' } as const, null)
 
-const EDITOR_APP = 'Zed'
+const DEFAULT_EDITOR = 'Zed'
 const PLACE_LABEL = { worktree: '워크트리', main: '메인', folder: '폴더' } as const
 
 const WARN = 70
@@ -158,7 +158,10 @@ const remember = async ($: Dollar, context: number | undefined, rateLimits: read
   }
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  // 설정의 editor 값(macOS 앱 이름). 비워 두면 열기 버튼을 숨긴다
+  const editor = typeof options.editor === 'string' ? options.editor.trim() : DEFAULT_EDITOR
+
   on('session.start', async ($, e, next) => {
     const result = await next(e)
     const usage = await $.session.usage().catch(() => undefined)
@@ -214,14 +217,14 @@ export const register: Register = on => {
         : []
 
     const openInEditor = async () => {
-      if (!where) {
+      if (!where || !editor) {
         return
       }
 
-      const r = await $.process.run(['open', '-a', EDITOR_APP, where.path]).catch(() => undefined)
+      const r = await $.process.run(['open', '-a', editor, where.path]).catch(() => undefined)
 
       if (!r || r.exitCode !== 0) {
-        $.ui.toast(`${EDITOR_APP}로 열지 못했습니다${r?.stderr ? `: ${r.stderr.trim()}` : ''}`)
+        $.ui.toast(`${editor}에서 열지 못했습니다${r?.stderr ? `: ${r.stderr.trim()}` : ''}`)
       }
     }
 
@@ -270,7 +273,9 @@ export const register: Register = on => {
                   {where.branch}
                 </Text>
               ) : null}
-              <Button key="open-editor" label={`${EDITOR_APP}로 열기`} variant="secondary" onPress={openInEditor} />
+              {editor ? (
+                <Button key="open-editor" label={`${editor}에서 열기`} variant="secondary" onPress={openInEditor} />
+              ) : null}
             </Box>
           ) : null}
         </Box>
@@ -287,7 +292,7 @@ export const register: Register = on => {
               <Text dimColor>{PLACE_LABEL[where.kind]}</Text>
               <Text>{where.name}</Text>
               {where.branch && where.branch !== where.name ? <Text dimColor>{where.branch}</Text> : null}
-              <Button key="open-editor" label={`${EDITOR_APP}로 열기`} onPress={openInEditor} />
+              {editor ? <Button key="open-editor" label={`${editor}에서 열기`} onPress={openInEditor} /> : null}
             </Box>
           ) : null}
           {meters.map(m => {
