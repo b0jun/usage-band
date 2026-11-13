@@ -1,3 +1,4 @@
+import type { On } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
 
 import { parsePlace } from './register'
@@ -180,6 +181,7 @@ test('워크트리 이름과 브랜치를 보여주고, 버튼을 누르면 Zed�
   const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text)
 
   expect(texts).toEqual(['워크트리', 'feat', 'claude/feat'])
+  expect((await ui.find({ type: 'Button', key: 'open-editor' }))?.props.label).toBe('Zed에서 열기')
 
   await ui.press({ key: 'open-editor' })
   expect(runs.at(-1)).toEqual(['open', '-a', 'Zed', '/repo/.claude/worktrees/feat'])
@@ -213,6 +215,48 @@ test('Zed를 열지 못하면 토스트로 알린다', async ($, on) => {
 
   expect((await ui.findAll({ type: 'Text' })).map(t => t.text)).toEqual(['폴더', 'code'])
   await ui.press({ key: 'open-editor' })
-  expect(toasts).toEqual(['Zed로 열지 못했습니다: Unable to find application named Zed'])
+  expect(toasts).toEqual(['Zed에서 열지 못했습니다: Unable to find application named Zed'])
   await ui.unmount()
+})
+
+const standInsForMainCheckout = (on: On, runs: (readonly string[])[]) => {
+  on('clock.now', () => ({ value: NOW }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('session.usage', () => ({ value: { startedAt: NOW, context: { window: 200000 }, rateLimits: [] } }))
+  on('session.cwd', () => ({ value: '/repo' }))
+  on('process.run', (_, e) => {
+    runs.push(e.argv)
+    const stdout = e.argv[0] === 'git' ? '/repo\n/repo/.git\n/repo/.git\nmain\n' : ''
+
+    return { value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+}
+
+test('설정한 에디터 이름으로 버튼 문구를 만들고 그 앱으로 연다', { options: { editor: 'Visual Studio Code' } }, async ($, on) => {
+  const runs: (readonly string[])[] = []
+  standInsForMainCheckout(on, runs)
+
+  await $.session.start({ cwd: '/repo', surface: 'desktop', isInteractive: true })
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+
+  expect((await ui.find({ type: 'Button', key: 'open-editor' }))?.props.label).toBe('Visual Studio Code에서 열기')
+  await ui.press({ key: 'open-editor' })
+  expect(runs.at(-1)).toEqual(['open', '-a', 'Visual Studio Code', '/repo'])
+  await ui.unmount()
+})
+
+test('에디터 설정을 비우면 열기 버튼만 숨기고 작업 위치는 그대로 보여준다', { options: { editor: '' } }, async ($, on) => {
+  const runs: (readonly string[])[] = []
+  standInsForMainCheckout(on, runs)
+
+  await $.session.start({ cwd: '/repo', surface: 'desktop', isInteractive: true })
+
+  for (const surface of ['desktop', 'terminal'] as const) {
+    const ui = await $.ui.mount({ ...BAND, surface })
+
+    expect(await ui.find({ type: 'Button', key: 'open-editor' })).toBeUndefined()
+    expect((await ui.findAll({ type: 'Text' })).map(t => t.text)).toEqual(['메인', 'repo', 'main'])
+    await ui.unmount()
+  }
 })

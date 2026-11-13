@@ -1,8 +1,17 @@
 {
   "name": "usage-band",
-  "version": "0.1.0",
-  "description": "입력창 바로 위에 컨텍스트·5시간·주간 사용량 미니 게이지와 현재 워크트리, Zed로 열기 버튼을 항상 표시",
+  "version": "0.2.0",
+  "description": "입력창 바로 위에 컨텍스트·5시간·주간 사용량 미니 게이지와 현재 워크트리, 에디터 열기 버튼을 항상 표시",
   "types": "./types/index.d.ts",
+  "userConfig": {
+    "editor": {
+      "type": "string",
+      "title": "에디터 앱",
+      "description": "작업 위치를 열 macOS 앱 이름입니다(예: Zed, Cursor, Visual Studio Code). 비워 두면 열기 버튼을 숨깁니다.",
+      "default": "Zed",
+      "required": false
+    }
+  },
   "author": { "name": "b0jun" },
   "license": "MIT",
   "homepage": "https://github.com/b0jun/usage-band"
