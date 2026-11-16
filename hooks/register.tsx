@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { CoreEngineInterface, Register, SessionRateLimit } from 'claude-code'
+import type { CoreEngineInterface, Register, SessionRateLimit, UiPressArgument } from 'claude-code'
 
 import type { Limit, Place, Snapshot } from '../types'
 
@@ -9,6 +9,7 @@ const place = atom({ plugin: 'usage-band', key: 'place' } as const, null)
 
 const DEFAULT_EDITOR = 'Zed'
 const PLACE_LABEL = { worktree: '워크트리', main: '메인', folder: '폴더' } as const
+const COPY_FAIL = { 'no-surface': '그릴 화면이 없음', 'no-clipboard': '클립보드에 쓸 수 없음', refused: '다른 플러그인이 막음' } as const
 
 const WARN = 70
 const CRIT = 90
@@ -228,6 +229,19 @@ export const register: Register = (on, options) => {
       }
     }
 
+    // 화면에는 폴더 이름만 보이므로 실제로 복사한 값을 토스트로 보여준다
+    const copy = (what: string, text: string) => async (press: UiPressArgument) => {
+      const r = await $.ui.copy({ text, surface: press.surface }).catch(() => undefined)
+
+      if (r?.isCopied) {
+        $.ui.toast(`${what} 복사됨 · ${text}`)
+
+        return
+      }
+
+      $.ui.toast(`${what}를 복사하지 못했습니다${r ? `: ${COPY_FAIL[r.reason]}` : ''}`)
+    }
+
     if (e.surface === 'desktop') {
       const { Box, Text, Svg, Button } = $.ui.resolve(e)
 
@@ -265,13 +279,17 @@ export const register: Register = (on, options) => {
               <Text size="footnote" dimColor>
                 {PLACE_LABEL[where.kind]}
               </Text>
-              <Text size="footnote" weight="medium">
-                {where.name}
-              </Text>
-              {where.branch && where.branch !== where.name ? (
-                <Text size="footnote" dimColor mono>
-                  {where.branch}
+              <Button key="copy-path" plain onPress={copy('경로', where.path)}>
+                <Text size="footnote" weight="medium">
+                  {where.name}
                 </Text>
+              </Button>
+              {where.branch && where.branch !== where.name ? (
+                <Button key="copy-branch" plain onPress={copy('브랜치', where.branch)}>
+                  <Text size="footnote" dimColor mono>
+                    {where.branch}
+                  </Text>
+                </Button>
               ) : null}
               {editor ? (
                 <Button key="open-editor" label={`${editor}에서 열기`} variant="secondary" onPress={openInEditor} />
@@ -290,8 +308,14 @@ export const register: Register = (on, options) => {
           {where ? (
             <Box flexDirection="row" gap={1}>
               <Text dimColor>{PLACE_LABEL[where.kind]}</Text>
-              <Text>{where.name}</Text>
-              {where.branch && where.branch !== where.name ? <Text dimColor>{where.branch}</Text> : null}
+              <Button key="copy-path" plain onPress={copy('경로', where.path)}>
+                <Text>{where.name}</Text>
+              </Button>
+              {where.branch && where.branch !== where.name ? (
+                <Button key="copy-branch" plain onPress={copy('브랜치', where.branch)}>
+                  <Text dimColor>{where.branch}</Text>
+                </Button>
+              ) : null}
               {editor ? <Button key="open-editor" label={`${editor}에서 열기`} onPress={openInEditor} /> : null}
             </Box>
           ) : null}

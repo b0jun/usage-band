@@ -260,3 +260,71 @@ test('에디터 설정을 비우면 열기 버튼만 숨기고 작업 위치는 
     await ui.unmount()
   }
 })
+
+test('폴더명을 누르면 전체 경로를, 브랜치명을 누르면 브랜치를 복사하고 복사한 값을 알린다', async ($, on) => {
+  const copies: { text: string; surface: string | undefined }[] = []
+  const toasts: string[] = []
+  standInsForMainCheckout(on, [])
+  on('ui.copy', (_, e) => {
+    copies.push({ text: e.text, surface: e.surface })
+
+    return { value: { isCopied: true } }
+  })
+  on('ui.toast', (_, e) => {
+    toasts.push(e.text)
+
+    return { value: undefined }
+  })
+
+  await $.session.start({ cwd: '/repo', surface: 'desktop', isInteractive: true })
+
+  for (const surface of ['desktop', 'terminal'] as const) {
+    const ui = await $.ui.mount({ ...BAND, surface })
+
+    await ui.press({ key: 'copy-path' })
+    await ui.press({ key: 'copy-branch' })
+    await ui.unmount()
+  }
+
+  expect(copies).toEqual([
+    { text: '/repo', surface: 'desktop' },
+    { text: 'main', surface: 'desktop' },
+    { text: '/repo', surface: 'terminal' },
+    { text: 'main', surface: 'terminal' },
+  ])
+  expect(toasts).toEqual(['경로 복사됨 · /repo', '브랜치 복사됨 · main', '경로 복사됨 · /repo', '브랜치 복사됨 · main'])
+})
+
+test('복사하지 못하면 이유를 토스트로 알린다', async ($, on) => {
+  const toasts: string[] = []
+  standInsForMainCheckout(on, [])
+  on('ui.copy', () => ({ value: { isCopied: false, reason: 'no-clipboard' } }))
+  on('ui.toast', (_, e) => {
+    toasts.push(e.text)
+
+    return { value: undefined }
+  })
+
+  await $.session.start({ cwd: '/repo', surface: 'desktop', isInteractive: true })
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+
+  await ui.press({ key: 'copy-branch' })
+  expect(toasts).toEqual(['브랜치를 복사하지 못했습니다: 클립보드에 쓸 수 없음'])
+  await ui.unmount()
+})
+
+test('폴더명·브랜치명 버튼에는 이름만 보이고 복사 문구를 붙이지 않는다', async ($, on) => {
+  standInsForMainCheckout(on, [])
+
+  await $.session.start({ cwd: '/repo', surface: 'desktop', isInteractive: true })
+
+  for (const surface of ['desktop', 'terminal'] as const) {
+    const ui = await $.ui.mount({ ...BAND, surface })
+
+    expect((await ui.find({ type: 'Button', key: 'copy-path' }))?.props.label).toBe('repo')
+    expect((await ui.find({ type: 'Button', key: 'copy-branch' }))?.props.label).toBe('main')
+    expect((await ui.findAll({ type: 'Text' })).map(t => t.text)).toEqual(['메인', 'repo', 'main'])
+    await ui.unmount()
+  }
+})
