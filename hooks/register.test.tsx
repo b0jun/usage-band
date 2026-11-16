@@ -313,3 +313,18 @@ test('복사하지 못하면 이유를 토스트로 알린다', async ($, on) =>
   expect(toasts).toEqual(['브랜치를 복사하지 못했습니다: 클립보드에 쓸 수 없음'])
   await ui.unmount()
 })
+
+test('폴더명·브랜치명 버튼에는 이름만 보이고 복사 문구를 붙이지 않는다', async ($, on) => {
+  standInsForMainCheckout(on, [])
+
+  await $.session.start({ cwd: '/repo', surface: 'desktop', isInteractive: true })
+
+  for (const surface of ['desktop', 'terminal'] as const) {
+    const ui = await $.ui.mount({ ...BAND, surface })
+
+    expect((await ui.find({ type: 'Button', key: 'copy-path' }))?.props.label).toBe('repo')
+    expect((await ui.find({ type: 'Button', key: 'copy-branch' }))?.props.label).toBe('main')
+    expect((await ui.findAll({ type: 'Text' })).map(t => t.text)).toEqual(['메인', 'repo', 'main'])
+    await ui.unmount()
+  }
+})

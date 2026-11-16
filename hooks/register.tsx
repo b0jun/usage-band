@@ -279,13 +279,13 @@ export const register: Register = (on, options) => {
               <Text size="footnote" dimColor>
                 {PLACE_LABEL[where.kind]}
               </Text>
-              <Button key="copy-path" label={`${where.name} 경로 복사`} plain onPress={copy('경로', where.path)}>
+              <Button key="copy-path" plain onPress={copy('경로', where.path)}>
                 <Text size="footnote" weight="medium">
                   {where.name}
                 </Text>
               </Button>
               {where.branch && where.branch !== where.name ? (
-                <Button key="copy-branch" label={`${where.branch} 브랜치 복사`} plain onPress={copy('브랜치', where.branch)}>
+                <Button key="copy-branch" plain onPress={copy('브랜치', where.branch)}>
                   <Text size="footnote" dimColor mono>
                     {where.branch}
                   </Text>
@@ -308,11 +308,11 @@ export const register: Register = (on, options) => {
           {where ? (
             <Box flexDirection="row" gap={1}>
               <Text dimColor>{PLACE_LABEL[where.kind]}</Text>
-              <Button key="copy-path" label={`${where.name} 경로 복사`} plain onPress={copy('경로', where.path)}>
+              <Button key="copy-path" plain onPress={copy('경로', where.path)}>
                 <Text>{where.name}</Text>
               </Button>
               {where.branch && where.branch !== where.name ? (
-                <Button key="copy-branch" label={`${where.branch} 브랜치 복사`} plain onPress={copy('브랜치', where.branch)}>
+                <Button key="copy-branch" plain onPress={copy('브랜치', where.branch)}>
                   <Text dimColor>{where.branch}</Text>
                 </Button>
               ) : null}
